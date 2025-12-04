@@ -66,22 +66,24 @@ impl<T:PartialOrd> PriorityQueue<T> {
 	/* MODIFICATION METHODS */
 
 	/// Add a new value to the queue.
-	pub fn add(&mut self, value:T) {
+	pub fn add<U:OneOrMany<T>>(&mut self, values:U) {
+		for value in values.as_list() {
 
-		// Create and store new entry.
-		let new_entry:PriorityEntry<T> = self.create_entry_for_value(value);
-		let index_of_previous:Option<usize> = new_entry.index_of_previous;
-		let index_of_next:Option<usize> = new_entry.index_of_next;
-		let index_of_new_entry:usize = self.insert_in_free_spot(new_entry);
+			// Create and store new entry.
+			let new_entry:PriorityEntry<T> = self.create_entry_for_value(value);
+			let index_of_previous:Option<usize> = new_entry.index_of_previous;
+			let index_of_next:Option<usize> = new_entry.index_of_next;
+			let index_of_new_entry:usize = self.insert_in_free_spot(new_entry);
 
-		// Link the node before and after the new one
-		match index_of_previous {
-			Some(previous_index) => self.nodes[previous_index].as_mut().unwrap().index_of_next = Some(index_of_new_entry),
-			None => self.index_of_first = index_of_new_entry
-		}
-		match index_of_next {
-			Some(next_index) => self.nodes[next_index].as_mut().unwrap().index_of_previous = Some(index_of_new_entry),
-			None => self.index_of_last = index_of_new_entry
+			// Link the node before and after the new one
+			match index_of_previous {
+				Some(previous_index) => self.nodes[previous_index].as_mut().unwrap().index_of_next = Some(index_of_new_entry),
+				None => self.index_of_first = index_of_new_entry
+			}
+			match index_of_next {
+				Some(next_index) => self.nodes[next_index].as_mut().unwrap().index_of_previous = Some(index_of_new_entry),
+				None => self.index_of_last = index_of_new_entry
+			}
 		}
 	}
 
@@ -147,5 +149,21 @@ impl<T:PartialOrd> PriorityQueue<T> {
 				self.nodes.len() - 1
 			}
 		}
+	}
+}
+
+
+
+pub trait OneOrMany<T> {
+	fn as_list(self) -> Vec<T>;
+}
+impl<T> OneOrMany<T> for T {
+	fn as_list(self) -> Vec<T> {
+		vec![self]
+	}
+}
+impl<T> OneOrMany<T> for Vec<T> {
+	fn as_list(self) -> Vec<T> {
+		self
 	}
 }

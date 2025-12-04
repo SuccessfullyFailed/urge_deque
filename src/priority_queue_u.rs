@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+	use std::time::{ Duration, Instant };
 	use crate::PriorityQueue;
 
 
@@ -173,5 +174,37 @@ mod tests {
 		assert_eq!(q.pop().map(|r| r.0), Some(3));
 		assert_eq!(q.pop().map(|r| r.0), Some(1));
 		assert_eq!(q.pop().map(|r| r.0), None);
+	}
+
+	#[test]
+	fn faster_than_normal_sort() {
+		let randomish_numbers:Vec<i32> = (0..10_000).map(|index| (index * 83 - 6) % 1569).collect();
+
+		// Time adding, sorting and popping all random numbers.
+		let start_normal:Instant = Instant::now();
+		let mut normal_list:Vec<i32> = Vec::new();
+		for addition in randomish_numbers.clone() {
+			normal_list.push(addition);
+			normal_list.sort();
+		}
+		while !normal_list.is_empty() {
+			let _ = normal_list.pop();
+		}
+		let duration_normal:Duration = start_normal.elapsed();
+
+		// Time adding, sorting and popping using priority queue.
+		let start_priority_queue:Instant = Instant::now();
+		let mut q:PriorityQueue<i32> = PriorityQueue::new();
+		for addition in randomish_numbers {
+			q.add(addition);
+		}
+		while !q.is_empty() {
+			let _ = q.pop();
+		}
+		let duration_priority_queue:Duration = start_priority_queue.elapsed();
+
+		// Priority queue should be shorter than normal list.
+		println!("normal: {:?}\npriority: {:?}", duration_normal, duration_priority_queue);
+		assert!(duration_priority_queue < duration_normal);
 	}
 }
