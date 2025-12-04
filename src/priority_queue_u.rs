@@ -16,7 +16,7 @@ mod tests {
 	#[test]
 	fn add_and_pop_single_value() {
 		let mut q:PriorityQueue<i32> = PriorityQueue::new();
-		q.add(10);
+		q.push(10);
 
 		assert_eq!(q.len(), 1);
 		assert_eq!(q.pop(), Some(10));
@@ -26,9 +26,9 @@ mod tests {
 	#[test]
 	fn handle_sorted_adding_and_popping() {
 		let mut q:PriorityQueue<i32> = PriorityQueue::new();
-		q.add(1);
-		q.add(2);
-		q.add(3);
+		q.push(1);
+		q.push(2);
+		q.push(3);
 
 		assert_eq!(q.len(), 3);
 		assert_eq!(q.pop(), Some(1));
@@ -40,9 +40,9 @@ mod tests {
 	#[test]
 	fn handle_unsorted_adding_and_popping() {
 		let mut q:PriorityQueue<i32> = PriorityQueue::new();
-		q.add(5);
-		q.add(4);
-		q.add(3);
+		q.push(5);
+		q.push(4);
+		q.push(3);
 
 		assert_eq!(q.len(), 3);
 		assert_eq!(q.pop(), Some(3));
@@ -54,9 +54,9 @@ mod tests {
 	#[test]
 	fn handle_duplicates() {
 		let mut q:PriorityQueue<i32> = PriorityQueue::new();
-		q.add(10);
-		q.add(5);
-		q.add(10);
+		q.push(10);
+		q.push(5);
+		q.push(10);
 
 		assert_eq!(q.len(), 3);
 		assert_eq!(q.pop(), Some(5));
@@ -68,17 +68,17 @@ mod tests {
 	#[test]
 	fn handle_irregular_push_and_pop() {
 		let mut q:PriorityQueue<i32> = PriorityQueue::new();
-		q.add(4);
-		q.add(1);
+		q.push(4);
+		q.push(1);
 		assert_eq!(q.len(), 2);
 		assert_eq!(q.pop(), Some(1));
 
-		q.add(10);
-		q.add(3);
+		q.push(10);
+		q.push(3);
 		assert_eq!(q.len(), 3);
 		assert_eq!(q.pop(), Some(3));
 
-		q.add(7);
+		q.push(7);
 		assert_eq!(q.len(), 3);
 		assert_eq!(q.pop(), Some(4));
 		assert_eq!(q.pop(), Some(7));
@@ -89,9 +89,9 @@ mod tests {
 	#[test]
 	fn handle_negative_values() {
 		let mut q:PriorityQueue<i32> = PriorityQueue::new();
-		q.add(-5);
-		q.add(-1);
-		q.add(-10);
+		q.push(-5);
+		q.push(-1);
+		q.push(-10);
 
 		assert_eq!(q.len(), 3);
 		assert_eq!(q.pop(), Some(-10));
@@ -104,7 +104,7 @@ mod tests {
 	fn handle_large_lists() {
 		let mut q:PriorityQueue<i32> = PriorityQueue::new();
 		for i in 0..10_000 {
-			q.add(i);
+			q.push(i);
 		}
 		assert_eq!(q.len(), 10_000);
 		for expected in 0..10_000 {
@@ -120,9 +120,9 @@ mod tests {
 		struct Wrapper(i32);
 
 		let mut q:PriorityQueue<Wrapper> = PriorityQueue::new();
-		q.add(Wrapper(3));
-		q.add(Wrapper(10));
-		q.add(Wrapper(7));
+		q.push(Wrapper(3));
+		q.push(Wrapper(10));
+		q.push(Wrapper(7));
 
 		assert_eq!(q.len(), 3);
 		assert_eq!(q.pop(), Some(Wrapper(3)));
@@ -143,9 +143,9 @@ mod tests {
 	#[test]
 	fn handle_smallest_and_largest_values() {
 		let mut q:PriorityQueue<i32> = PriorityQueue::new();
-		q.add(i32::MIN);
-		q.add(0);
-		q.add(i32::MAX);
+		q.push(i32::MIN);
+		q.push(0);
+		q.push(i32::MAX);
 
 		assert_eq!(q.len(), 3);
 		assert_eq!(q.pop(), Some(i32::MIN));
@@ -165,9 +165,9 @@ mod tests {
 		}
 
 		let mut q:PriorityQueue<Reverse> = PriorityQueue::new();
-		q.add(Reverse(1));
-		q.add(Reverse(5));
-		q.add(Reverse(3));
+		q.push(Reverse(1));
+		q.push(Reverse(5));
+		q.push(Reverse(3));
 
 		assert_eq!(q.len(), 3);
 		assert_eq!(q.pop().map(|r| r.0), Some(5));
@@ -196,7 +196,7 @@ mod tests {
 		let start_priority_queue:Instant = Instant::now();
 		let mut q:PriorityQueue<i32> = PriorityQueue::new();
 		for addition in randomish_numbers {
-			q.add(addition);
+			q.push(addition);
 		}
 		while !q.is_empty() {
 			let _ = q.pop();

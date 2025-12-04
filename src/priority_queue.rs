@@ -1,154 +1,110 @@
-use std::fmt::{ Debug, Formatter };
-
-
-
-
-
-pub struct PriorityEntry<T> {
-	value:T,
-	index_of_next:Option<usize>,
-	index_of_previous:Option<usize>
-}
-
-
-
-pub struct PriorityQueue<T:PartialOrd> {
-	nodes:Vec<Option<PriorityEntry<T>>>,
-	active_samples:usize,
-	index_of_first:usize,
-	index_of_last:usize
-}
-impl<T:PartialOrd + Debug> std::fmt::Debug for PriorityQueue<T> {
-	fn fmt(&self, f:&mut Formatter<'_>) -> std::fmt::Result {
-		let mut sorted_values:Vec<&T> = Vec::with_capacity(self.len());
-		let mut cursor:usize = self.index_of_first;
-		while let Some(node) = &self.nodes[cursor] {
-			sorted_values.push(&node.value);
-			if let Some(next_cursor) = node.index_of_next {
-				cursor = next_cursor;
-			} else {
-				break;
-			}
-		}
-		write!(f, "{:?}", sorted_values)
-	}
-}
+pub struct PriorityQueue<T>(Vec<T>);
 impl<T:PartialOrd> PriorityQueue<T> {
 
 	/* CONSTRUCTOR METHODS */
 
-	/// Create a new queue.
-	pub fn new() -> PriorityQueue<T> {
-		PriorityQueue {
-			nodes: vec![None],
-			active_samples: 0,
-			index_of_first: 0,
-			index_of_last: 0
-		}
+	/// Create a new binary tree.
+	pub const fn new() -> PriorityQueue<T> {
+		PriorityQueue(Vec::new())
 	}
 
 
 
 	/* PROPERTY GETTER METHODS */
-
-	/// Get the amount of samples in the queue.
+	
+	/// Get the amount of values in the tree.
 	pub fn len(&self) -> usize {
-		self.active_samples
+		self.0.len()
 	}
 
-	/// Whether or not there is any data in the queue.
+	/// Whether or not the tree is completely empty, lacking any values.
 	pub fn is_empty(&self) -> bool {
-		self.len() == 0
+		self.0.is_empty()
 	}
 
 
 
-	/* MODIFICATION METHODS */
+	/* MUTATION METHODS */
 
-	/// Add a new value to the queue.
-	pub fn add<U:OneOrMany<T>>(&mut self, values:U) {
+	/// Add new values to the tree.
+	pub fn push<U:OneOrMany<T>>(&mut self, values:U) {
 		for value in values.as_list() {
 
-			// Create and store new entry.
-			let new_entry:PriorityEntry<T> = self.create_entry_for_value(value);
-			let index_of_previous:Option<usize> = new_entry.index_of_previous;
-			let index_of_next:Option<usize> = new_entry.index_of_next;
-			let index_of_new_entry:usize = self.insert_in_free_spot(new_entry);
-
-			// Link the node before and after the new one
-			match index_of_previous {
-				Some(previous_index) => self.nodes[previous_index].as_mut().unwrap().index_of_next = Some(index_of_new_entry),
-				None => self.index_of_first = index_of_new_entry
+			// Add value to the end of the tree.
+			self.0.push(value);
+			if self.len() == 1 {
+				continue;
 			}
-			match index_of_next {
-				Some(next_index) => self.nodes[next_index].as_mut().unwrap().index_of_previous = Some(index_of_new_entry),
-				None => self.index_of_last = index_of_new_entry
+
+			// Move new value to the correct position, shifting each node in the way.
+			let mut new_node_index:usize = self.len() - 1;
+			let mut parent_index:usize = Self::parent_of_index(new_node_index);
+			while new_node_index != 0 && self.0[parent_index] > self.0[new_node_index] {
+				self.0.swap(new_node_index, parent_index);
+				parent_index = new_node_index;
+				new_node_index = Self::parent_of_index(new_node_index);
 			}
 		}
 	}
 
-	/// Pop the first value.
+	/// Get the smallest value from the tree.
 	pub fn pop(&mut self) -> Option<T> {
-		match self.nodes[self.index_of_first].take() {
-			Some(node) => {
-				self.active_samples -= 1;
-				if let Some(next_index) = node.index_of_next {
-					if let Some(next_node) = &mut self.nodes[next_index] {
-						next_node.index_of_previous = None;
-						self.index_of_first = next_index;
-					}
+		if self.is_empty() { return None; }
+		
+		// Move the last value to the top, then take the actual smallest value from the end of the list.
+		let last_index:usize = self.len() - 1;
+		self.0.swap(0, last_index);
+		let top_value:T = self.0.remove(last_index);
+
+		// Keep switching the new top value with it's smallest child until the tree is fixed.
+		let self_len:usize = self.len();
+		let mut potential_node_index:Option<usize> = Some(0);
+		while let Some(node_index) = potential_node_index {
+			let [left_child, right_child] = Self::direct_children_of_index(node_index);
+			let switch_right:bool = right_child < self_len && self.0[right_child] < self.0[node_index];
+			let switch_left:bool = left_child < self_len && self.0[left_child] < self.0[node_index] && (!switch_right || self.0[left_child] < self.0[right_child]);
+
+			potential_node_index = {
+				if switch_left {
+					self.0.swap(node_index, left_child);
+					Some(left_child)
+				} else if switch_right {
+					self.0.swap(node_index, right_child);
+					Some(right_child)
+				} else {
+					None
 				}
-				Some(node.value)
-			},
-			None => None
+			};
 		}
+
+		// Return the highest value.
+		Some(top_value)
 	}
 
-	/// Create an entry for the a value.
-	fn create_entry_for_value(&self, value:T) -> PriorityEntry<T> {
 
-		// If first node does not exist, return entry without previous or next.
-		if self.nodes[self.index_of_first].is_none() {
-			return PriorityEntry { value, index_of_next: None, index_of_previous: None };
-		}
 
-		// Loop through the list and find the first spot with a higher value than the new one.
-		let mut cursor:usize = self.index_of_first;
-		let mut previous_cursor:Option<usize> = None;
-		while let Some(node) = &self.nodes[cursor] {
+	/* INDEXING METHODS */
 
-			// If node has higher value than the new value, use this spot.
-			if node.value > value {
-				return PriorityEntry { value, index_of_next: Some(cursor), index_of_previous: previous_cursor };
-			}
+	/// Get the parent index of the given child-node.
+	pub fn parent_of_index(node_index:usize) -> usize {
 
-			// If no next index, find free spot and have no next index.
-			if node.index_of_next.is_none() {
-				return PriorityEntry { value, index_of_next: None, index_of_previous: Some(cursor) };
-			}
-
-			// Try to move on to the next node.
-			previous_cursor = Some(cursor);
-			cursor = node.index_of_next.unwrap();
-		}
-
-		// This entry is at the end of the list, does not have a next node.
-		PriorityEntry { value, index_of_next: None, index_of_previous: previous_cursor }
+		// As each node can only have two children, this means every two nodes share a parent.
+		// This means that for each increment of the node-index, the parent index shifts one.
+		// Because node at index 2 is still attached to parent at index 0, one must be subtracted first.
+		(node_index - 1) / 2
 	}
 
-	/// Store a value at the first free spot. Returns the index where the value was inserted.
-	fn insert_in_free_spot(&mut self, entry:PriorityEntry<T>) -> usize {
-		self.active_samples += 1;
-		match self.nodes.iter().position(|node| node.is_none()) {
-			Some(index) => {
-				self.nodes[index] = Some(entry);
-				index
-			},
-			None => {
-				self.nodes.push(Some(entry));
-				self.nodes.len() - 1
-			}
-		}
+	/// Get the index of all direct children of the given parent-node.
+	pub fn direct_children_of_index(node_index:usize) -> [usize; 2] {
+
+		// The same idea as explained in 'parent_of_index', but reversed.
+		let left_child:usize = 1 + node_index * 2;
+		[left_child, left_child + 1]
+	}
+}
+impl<T> Default for PriorityQueue<T> {
+	fn default() -> Self {
+		PriorityQueue(Vec::new())
 	}
 }
 
